@@ -8,7 +8,7 @@ library(ggtree)
 library(ggimage)
 
 #primate data 
-primates <- readRDS("primates.rds")
+primates <- read.csv(file = "data/primates_final.csv", header = TRUE)
 
 ######################## PHYLOGENETIC TREES & ASR #################################################################
 
