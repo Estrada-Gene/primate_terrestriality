@@ -1,4 +1,4 @@
-#####  statistical modeling for Estrada and Marshall (2024)  #####
+####### statistical modeling for Estrada and Marshall (2024) #######
 
 library(tidyverse)
 library(phytools)
@@ -6,30 +6,28 @@ library(brms)
 library(brmstools)
 library(performance)
 library(cowplot)
+library(modelsummary)
+library(kableExtra)
 
-#primate data 
+#read in primate data 
 primates <- read.csv(file = "data/primates_final.csv", header = TRUE)
-
-#removing the entry for the extinct sloth lemur Palaeopropithecus
-primates <- primates[!primates$IUCN.family == "PALAEOPROPITHECIDAE",]
 
 #saving ordinal terrestriality variable as ordered factor
 primates$Terrestrial.ordinal <- factor(primates$Terrestrial.ordinal, 
                                        levels = c("arboreal", "semiterrestrial", "terrestrial"),
                                        ordered = TRUE)
 
+#read in '10k Trees' primate phylogenetic tree
+full_tree <- read.nexus(file = "data/10kTrees_Primates_full.nex")
 
-#covariance matrix from 10k Trees primate phylogenetic tree
-full_tree <- read.nexus(file = "10kTrees_Primates_full.nex")
-
-#fixing Latin binomials
+#remove underscores from Latin binomials
 full_tree$tip.label <- sub("_"," ", full_tree$tip.label)
 full_tree$tip.label <- sub("_"," ", full_tree$tip.label)
 
-#variance-covariance matrix
+#create variance-covariance matrix
 A <- vcv.phylo(full_tree)
 
-#two-part function to create multi-model coefficient plots using brms objects
+#two-part function to create multi-model coefficient plots for brms objects
 compare_posteriors_data <- function(..., dodge_width = 0.5) {
   dots <- rlang::dots_list(..., .named = TRUE)
   draws <- lapply(dots, function(x) {
@@ -66,6 +64,7 @@ compare_posteriors_plots <- function(posterior_data, parameters_keep, dodge_widt
 set.seed(1120)
 
 #########################################################################################################################
+####### MODELS 
 
 ##### binary models
 
@@ -92,7 +91,7 @@ brms1 <- brm(Terrestrial.binary ~
 
 #model summary
 summary(brms1)
-#checking for any issues with multicollinearity 
+#checking for multicollinearity 
 check_collinearity(brms1)
 #posterior predictive check 
 pp_check(brms1, ndraws = 1000)
@@ -494,3 +493,38 @@ plot_grid(p4, p5,
           align = "h", 
           nrow = 1, 
           rel_widths = c(3/5, 2/5))
+
+
+##### model comparison table
+
+table1 <- modelsummary(list("(m/f)" =  brms1,     #binary m/f
+                            "(fem)" =  brms1.1,   #binary fem
+                            "(m/f)" =  brms2,     #ordinal m/f
+                            "(fem)" =  brms2.1,   #binary fem
+                            "(m/f)" =  brms3,     #continuous m/f
+                            "(fem)" =  brms3.1,   #continuous fem
+                            "(m/f)" =  brms_s1,   #sub1 m/f
+                            "(fem)" =  brms_s1f,  #sub1 fem
+                            "(m/f)" =  brms_s2,   #sub2 m/f
+                            "(fem)" =  brms_s2f), #sub2 fem
+                       fmt = 3,
+                       centrality = "mean",
+                       estimate = "{estimate} ({std.dev})",
+                       gof_map = c("nobs", "r.squared"),
+                       coef_map = c("b_AvBody.mass.comb.sc" = "Body Mass (sex-averaged)",
+                                    "b_FBody.mass.comb.sc" = "Body Mass (female only)",
+                                    "b_Perc.fruit.comb.sc" = "Percent Fruit in Diet",
+                                    "b_FH.Median.sc" = "Forest Height",
+                                    "b_TC.median.sc" = "Canopy Cover",
+                                    "b_NDVI.MED.sc" = "NDVI",
+                                    "b_WC1_area_mean.sc" = "Maximum Temperature",
+                                    "b_WC12_area_mean.sc" = "Annual Rainfall",
+                                    "b_n.carn.sc" = "Carnivores in Range (sex-averaged)",
+                                    "b_n.carn.sc.f" = "Carnivores in Range (female only)"))
+
+#add headers
+kable1 <- add_header_above(table1, c(" ", "Binary" = 2, "Ordinal" = 2, "Continuous" = 2, 
+                                     "Sub-model 1" = 2, "Sub-model 2" = 2))
+
+#save
+#save_kable(kable1, file = "kable1.png")
