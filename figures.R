@@ -1,4 +1,4 @@
-####### Figures for Estrada & Marshall (2024) #######
+####### figures for Estrada & Marshall (2024) #######
 
 library(tidyverse)
 library(phytools)
@@ -7,13 +7,13 @@ library(ggpie)
 library(ggtree)
 library(ggimage)
 
-#primate data 
+#read in primate data 
 primates <- read.csv(file = "data/primates_final.csv", header = TRUE)
 
 ######################## PHYLOGENETIC TREES & ASR #################################################################
 
 #file to align 10kTrees and IUCN taxonomies
-taxa <- read.csv(file = "10k_primate_tree_taxa.csv", header = TRUE)
+taxa <- read.csv(file = "data/10k_primate_tree_taxa.csv", header = TRUE)
 colnames(taxa) <- c("X10k_tax", "scientific_name", "remove")
 
 #add terrestriality data
@@ -22,10 +22,10 @@ taxa <- left_join(taxa,
                               "Terrestrial.ordinal","ground.use", "IUCN.family", )], 
                   by = "scientific_name")
 
-#10kTrees for taxa with ordinal terrestriality data
-ordinal_tree <- read.nexus(file = "10kTrees_Primates_ordinal.nex")
+#10kTrees phylogeny for taxa with ordinal terrestriality data only
+ordinal_tree <- read.nexus(file = "data/10kTrees_Primates_ordinal.nex")
 
-#fix Latin binomials
+#remove underscores from Latin binomials
 ordinal_tree$tip.label <- sub("_"," ", ordinal_tree$tip.label)
 ordinal_tree$tip.label <- sub("_"," ", ordinal_tree$tip.label)
 
@@ -41,8 +41,7 @@ terr_ord_data <- setNames(terr_ord_data$taxa.taxa.X10k_tax..in..ordinal_tree.tip
 #setting plot colors
 cols2 <- c("white", "grey", "black")
 
-#functions to add outlines to phylo node pie charts 
-# (from https://github.com/YuLab-SMU/ggtree)
+#functions to add outlines to phylo node pie charts (from https://github.com/YuLab-SMU/ggtree)
 ggpie <- function(data, y, fill, color, alpha=1, outline.color="transparent", outline.size=0) {
   p <- ggplot(data, aes_(x=1, y=y, fill=fill)) +
     geom_bar(stat='identity', alpha=alpha, color=outline.color, size=outline.size, show.legend = F) +
@@ -149,64 +148,3 @@ fast_cont <- fastAnc(con_tree_bi, terr_con_data2, vars = TRUE, CI = TRUE)
 obj <- contMap(con_tree_bi, terr_con_data2, plot = FALSE)
 plot(obj, legend = 0.410939*max(nodeHeights(con_tree_bi)), leg.txt = "percent time on ground", 
      legend.pos = c(0.1,0.5), fsize = c(0.45, 0.8), lwd = 2)
-
-
-################################### MODEL OUTPUT ###############################################################
-library(cowplot)
-library(modelsummary)
-library(kableExtra)
-
-#load model and plot objects
-load(file = "brms_final.rda")
-
-#binary model coefficient plot
-p1
-
-#ordinal model coef plot
-p3
-
-#continuous model coef plot
-p5
-
-#sub models coef plots
-plot_grid(plot4, plot5, 
-          align = "h", 
-          nrow = 1, 
-          rel_widths = c(6/11, 5/11))
-
-
-#model comparison table
-table1 <- modelsummary(list("(m/f)" =  brms1,     #binary m/f
-                            "(fem)" =  brms1.1,   #binary fem
-                            "(m/f)" =  brms2,     #ordinal m/f
-                            "(fem)" =  brms2.1,   #binary fem
-                            "(m/f)" =  brms3,     #continuous m/f
-                            "(fem)" =  brms3.1,   #continuous fem
-                            "(m/f)" =  brms_s1,   #sub1 m/f
-                            "(fem)" =  brms_s1f,  #sub1 fem
-                            "(m/f)" =  brms_s2,   #sub2 m/f
-                            "(fem)" =  brms_s2f), #sub2 fem
-                       #output = "html",
-                       fmt = 3,
-                       #statistic = "std.dev",
-                       centrality = "mean",
-                       estimate = "{estimate} ({std.dev})",
-                       gof_map = c("nobs", "r.squared"),
-                       coef_map = c("b_AvBody.mass.comb.sc" = "Body Mass (sex-averaged)",
-                                    "b_FBody.mass.comb.sc" = "Body Mass (female only)",
-                                    "b_Perc.fruit.comb.sc" = "Percent Fruit in Diet",
-                                    "b_FH.Median.sc" = "Forest Height",
-                                    "b_TC.median.sc" = "Canopy Cover",
-                                    "b_NDVI.MED.sc" = "NDVI",
-                                    "b_WC1_area_mean.sc" = "Maximum Temperature",
-                                    "b_WC12_area_mean.sc" = "Annual Rainfall",
-                                    "b_n.carn.sc" = "Carnivores in Range (sex-averaged)",
-                                    "b_n.carn.sc.f" = "Carnivores in Range (female only)"),
-)
-
-#add headers
-kable1 <- add_header_above(table1, c(" ", "Binary" = 2, "Ordinal" = 2, "Continuous" = 2, 
-                                     "Sub-model 1" = 2, "Sub-model 2" = 2))
-
-#save
-save_kable(kable1, file = "kable1.png")
