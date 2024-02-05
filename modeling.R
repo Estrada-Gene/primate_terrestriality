@@ -526,5 +526,9 @@ table1 <- modelsummary(list("(m/f)" =  brms1,     #binary m/f
 kable1 <- add_header_above(table1, c(" ", "Binary" = 2, "Ordinal" = 2, "Continuous" = 2, 
                                      "Sub-model 1" = 2, "Sub-model 2" = 2))
 
+#stylize
+kable1 <- kable_styling(kable1, font_size = 12, html_font = "arial", 
+                        htmltable_class = "lightable-material")
+
 #save
-#save_kable(kable1, file = "kable1.png")
+save_kable(kable1, file = "kable1.png")
